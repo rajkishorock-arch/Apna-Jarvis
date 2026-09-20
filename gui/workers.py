@@ -48,14 +48,16 @@ class CameraWorker(QThread):
         self.auth_required_frames = 5
         
     def run(self):
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        if not cap.isOpened():
+            cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         
         while self.active:
             try:
                 success, img = cap.read()
-                if not success or img is None:
+                if not success or img is None or img.size == 0:
                     time.sleep(0.03)
                     continue
                 

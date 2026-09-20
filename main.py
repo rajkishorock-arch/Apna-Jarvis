@@ -1,4 +1,6 @@
 import sys
+import os
+os.environ["OPENCV_VIDEOINPUT_PRIORITY_MSMF"] = "0"
 from PySide6.QtWidgets import QApplication
 from gui.dashboard import DashboardWindow
 
