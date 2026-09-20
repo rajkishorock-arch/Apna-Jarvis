@@ -2,7 +2,7 @@ import sys
 import os
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-    QLabel, QPushButton, QProgressBar, QTextEdit, QListWidget, QListWidgetItem, QFrame, QMessageBox, QInputDialog
+    QLabel, QPushButton, QProgressBar, QTextEdit, QListWidget, QListWidgetItem, QFrame, QMessageBox, QInputDialog, QLineEdit
 )
 from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QPixmap, QImage, QFont
@@ -21,8 +21,8 @@ from ai.brain import AIBrain
 class DashboardWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("JarvisX - AI Desktop Assistant Dashboard")
-        self.resize(1100, 750)
+        self.setWindowTitle("Jarvis AI Desktop Assistant")
+        self.resize(1150, 800)
         
         # Subsystem instances for thread sharing
         self.tts = TTSManager()
@@ -118,6 +118,29 @@ class DashboardWindow(QMainWindow):
             }
             QPushButton#btn-secondary:hover {
                 background-color: #E2E8F0;
+            }
+            QPushButton#btn-shortcut {
+                background-color: #FFFFFF;
+                color: #2563EB;
+                border: 1px solid #BFDBFE;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            QPushButton#btn-shortcut:hover {
+                background-color: #EFF6FF;
+            }
+            QLineEdit {
+                background-color: #FFFFFF;
+                border: 1px solid #CBD5E1;
+                border-radius: 8px;
+                padding: 8px 12px;
+                font-size: 13px;
+                color: #0F172A;
+            }
+            QLineEdit:focus {
+                border: 2px solid #2563EB;
             }
             QProgressBar {
                 border: 1px solid #E2E8F0;
@@ -301,27 +324,78 @@ class DashboardWindow(QMainWindow):
         
         main_layout.addLayout(self.middle_layout, stretch=3)
         
-        # Bottom row: System logs
+        # Bottom row: Interactive AI Assistant Chat & Command Bar
         log_card = QFrame()
         log_card.setObjectName("card")
         log_layout = QVBoxLayout(log_card)
         
         log_title = QHBoxLayout()
-        log_hdr = QLabel("Activity Log")
+        log_hdr = QLabel("AI Assistant Stream")
         log_hdr.setObjectName("header")
         log_title.addWidget(log_hdr)
         
-        self.voice_status_label = QLabel("Status: Ready")
+        # Help / User Guide Button
+        self.help_btn = QPushButton("❓ How to Use (Guide)")
+        self.help_btn.setObjectName("btn-shortcut")
+        self.help_btn.clicked.connect(self.show_help_dialog)
+        log_title.addWidget(self.help_btn)
+        
+        self.voice_status_label = QLabel("Status: Online (Listening)")
         self.voice_status_label.setStyleSheet("color: #059669; font-weight: 600; background-color: #ECFDF5; padding: 4px 10px; border-radius: 12px; font-size: 12px;")
         log_title.addWidget(self.voice_status_label, alignment=Qt.AlignRight)
         log_layout.addLayout(log_title)
         
+        # Quick Action Shortcuts Bar
+        shortcuts_layout = QHBoxLayout()
+        shortcuts_layout.setSpacing(8)
+        
+        btn_chrome = QPushButton("🌐 Open Chrome")
+        btn_chrome.setObjectName("btn-shortcut")
+        btn_chrome.clicked.connect(lambda: self.execute_quick_command("open chrome"))
+        shortcuts_layout.addWidget(btn_chrome)
+        
+        btn_yt = QPushButton("🎵 Open YouTube")
+        btn_yt.setObjectName("btn-shortcut")
+        btn_yt.clicked.connect(lambda: self.execute_quick_command("open youtube"))
+        shortcuts_layout.addWidget(btn_yt)
+        
+        btn_vscode = QPushButton("💻 Open VS Code")
+        btn_vscode.setObjectName("btn-shortcut")
+        btn_vscode.clicked.connect(lambda: self.execute_quick_command("open vs code"))
+        shortcuts_layout.addWidget(btn_vscode)
+        
+        btn_shot = QPushButton("📸 Screenshot")
+        btn_shot.setObjectName("btn-shortcut")
+        btn_shot.clicked.connect(lambda: self.execute_quick_command("take screenshot"))
+        shortcuts_layout.addWidget(btn_shot)
+        
+        btn_stats = QPushButton("📊 System Usage")
+        btn_stats.setObjectName("btn-shortcut")
+        btn_stats.clicked.connect(lambda: self.execute_quick_command("what is my cpu usage"))
+        shortcuts_layout.addWidget(btn_stats)
+        
+        log_layout.addLayout(shortcuts_layout)
+        
+        # Chat Stream Area
         self.log_terminal = QTextEdit()
         self.log_terminal.setReadOnly(True)
-        self.log_terminal.append("Jarvis Assistant initialized and ready.\n")
+        self.log_terminal.append("👋 <b>Jarvis AI:</b> Welcome Rajkishor! Type any command below or use Voice/Gestures to control your PC.\n")
         log_layout.addWidget(self.log_terminal)
         
-        main_layout.addWidget(log_card, stretch=2)
+        # Text Command Input Bar
+        input_layout = QHBoxLayout()
+        self.cmd_input = QLineEdit()
+        self.cmd_input.setPlaceholderText("Type a command or ask a question (e.g., 'Open Chrome', 'Search machine learning on google')...")
+        self.cmd_input.returnPressed.connect(self.send_text_command)
+        input_layout.addWidget(self.cmd_input, stretch=4)
+        
+        self.send_cmd_btn = QPushButton("Send Command")
+        self.send_cmd_btn.clicked.connect(self.send_text_command)
+        input_layout.addWidget(self.send_cmd_btn, stretch=1)
+        
+        log_layout.addLayout(input_layout)
+        
+        main_layout.addWidget(log_card, stretch=3)
 
     def start_workers(self):
         # 1. Camera Gesture Worker QThread
@@ -354,9 +428,84 @@ class DashboardWindow(QMainWindow):
         self.voice_status_label.setText(f"Status: {status}")
         self.log_terminal.append(f"[System Status] {status}")
 
+    def execute_quick_command(self, cmd_text):
+        self.cmd_input.setText(cmd_text)
+        self.send_text_command()
+
+    def send_text_command(self):
+        cmd = self.cmd_input.text().strip()
+        if not cmd:
+            return
+        
+        self.cmd_input.clear()
+        self.log_terminal.append(f"<b>🧑 You:</b> {cmd}")
+        
+        # Process command using AI Brain
+        result = self.brain.process_command(cmd)
+        intent = result["intent"]
+        params = result["params"]
+        reply = result["reply"]
+        
+        # Execute Desktop Automation based on intent
+        if intent == "launch_app":
+            self.automation.launch_app(params["app"])
+        elif intent == "close_app":
+            self.automation.close_app(params["app"])
+        elif intent == "open_website":
+            self.automation.open_website(params["url"])
+        elif intent == "web_search":
+            self.automation.search_web(params["query"])
+        elif intent == "take_screenshot":
+            self.automation.take_screenshot()
+        elif intent == "volume_control":
+            self.automation.control_volume(params["action"])
+        
+        # Display response & speak out
+        self.log_terminal.append(f"<b>🤖 Jarvis:</b> {reply}\n")
+        self.tts.speak(reply, block=False)
+        
+        if "note" in cmd.lower():
+            self.refresh_notes()
+        if "my name is" in cmd.lower() or "call me" in cmd.lower():
+            self.update_greeting()
+
+    def show_help_dialog(self):
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Jarvis AI - User Guide & Commands")
+        msg.setTextFormat(Qt.RichText)
+        msg.setText("""
+        <h3>🤖 Welcome to Jarvis AI Assistant User Guide</h3>
+        <p>Aap Jarvis ko <b>Voice</b>, <b>Text Commands</b>, ya <b>Hand Gestures</b> se control kar sakte hain:</p>
+
+        <h4>1. 💬 Voice & Text Commands (Boliye ya Type Karein):</h4>
+        <ul>
+            <li><b>Apps Open/Close:</b> <i>"Open Chrome"</i>, <i>"Open YouTube"</i>, <i>"Open VS Code"</i>, <i>"Close Notepad"</i></li>
+            <li><b>System Actions:</b> <i>"Take screenshot"</i>, <i>"What is my CPU usage?"</i>, <i>"Volume up"</i>, <i>"Mute"</i></li>
+            <li><b>Web Search:</b> <i>"Search Python tutorials on Google"</i></li>
+            <li><b>Notes & Memory:</b> <i>"Remember buy milk"</i>, <i>"Save note project deadline tomorrow"</i></li>
+            <li><b>General Questions:</b> <i>"What is artificial intelligence?"</i>, <i>"Tell me a joke"</i></li>
+        </ul>
+
+        <h4>2. ✋ Hand Gestures (Webcam se Control):</h4>
+        <ul>
+            <li><b>👆 Index Finger Up:</b> Mouse Cursor screen par move hoga</li>
+            <li><b>✌️ Index + Middle Pinch:</b> Left Click karega</li>
+            <li><b>👌 Thumb + Index Pinch:</b> Right Click karega</li>
+            <li><b>🖐️ 3 Ungliyan Up/Down:</b> Screen Scroll karega</li>
+        </ul>
+
+        <h4>3. 👤 Face ID Security:</h4>
+        <ul>
+            <li>Click <b>'Register Face ID'</b> -> Look at camera to save face model.</li>
+            <li>Click <b>'Lock Assistant'</b> -> App will lock until authorized face is detected.</li>
+        </ul>
+        """)
+        msg.setStandardButtons(QMessageBox.Ok)
+        msg.exec()
+
     def log_voice_command(self, cmd, reply):
-        self.log_terminal.append(f"\n[User Query]: {cmd}")
-        self.log_terminal.append(f"[Jarvis Voice Response]: {reply}")
+        self.log_terminal.append(f"<b>🎙️ User (Voice):</b> {cmd}")
+        self.log_terminal.append(f"<b>🤖 Jarvis:</b> {reply}\n")
         
         if "note" in cmd:
             self.refresh_notes()

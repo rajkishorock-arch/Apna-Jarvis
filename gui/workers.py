@@ -48,7 +48,9 @@ class CameraWorker(QThread):
         self.auth_required_frames = 5
         
     def run(self):
-        cap = cv2.VideoCapture(config.CAMERA_INDEX)
+        cap = cv2.VideoCapture(config.CAMERA_INDEX, cv2.CAP_DSHOW)
+        if not cap.isOpened():
+            cap = cv2.VideoCapture(0)
         cap.set(3, config.FRAME_WIDTH)
         cap.set(4, config.FRAME_HEIGHT)
         
