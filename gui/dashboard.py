@@ -32,8 +32,8 @@ class DashboardWindow(QMainWindow):
         
         self.system_locked = False
         
-        # Load stylesheet for professional look
-        self.apply_dark_theme()
+        # Load stylesheet for professional light look
+        self.apply_light_theme()
         
         # Initialize UI Components
         self.init_ui()
@@ -49,92 +49,118 @@ class DashboardWindow(QMainWindow):
         # Initial notes refresh
         self.refresh_notes()
 
-    def apply_dark_theme(self):
+    def apply_light_theme(self):
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #0E0E10;
+                background-color: #F8FAFC;
             }
             QWidget {
-                color: #E2E2E6;
-                font-family: 'Segoe UI', Arial, sans-serif;
+                color: #1E293B;
+                font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+                font-size: 13px;
             }
             QFrame#card {
-                background-color: #18181C;
-                border: 1px solid #2C2C35;
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
                 border-radius: 12px;
-                padding: 10px;
+                padding: 14px;
             }
             QLabel#header {
-                font-size: 20px;
-                font-weight: bold;
-                color: #5F5FC4;
-                margin-bottom: 5px;
+                font-size: 15px;
+                font-weight: 700;
+                color: #0F172A;
+                margin-bottom: 8px;
             }
             QLabel#title {
-                font-size: 24px;
-                font-weight: bold;
-                color: #FFFFFF;
-                padding: 10px;
+                font-size: 20px;
+                font-weight: 700;
+                color: #0F172A;
             }
             QPushButton {
-                background-color: #5F5FC4;
+                background-color: #2563EB;
                 border: none;
-                color: white;
-                padding: 8px 15px;
-                font-weight: bold;
-                border-radius: 6px;
+                color: #FFFFFF;
+                padding: 9px 16px;
+                font-weight: 600;
+                border-radius: 8px;
                 font-size: 13px;
-                margin-bottom: 4px;
             }
             QPushButton:hover {
-                background-color: #7373D8;
+                background-color: #1D4ED8;
             }
             QPushButton#toggle-btn-active {
-                background-color: #2ECC71;
+                background-color: #ECFDF5;
+                color: #065F46;
+                border: 1px solid #A7F3D0;
             }
             QPushButton#toggle-btn-active:hover {
-                background-color: #27AE60;
+                background-color: #D1FAE5;
             }
             QPushButton#toggle-btn-inactive {
-                background-color: #E74C3C;
+                background-color: #FEF2F2;
+                color: #991B1B;
+                border: 1px solid #FECACA;
             }
             QPushButton#toggle-btn-inactive:hover {
-                background-color: #C0392B;
+                background-color: #FEE2E2;
+            }
+            QPushButton#btn-danger {
+                background-color: #EF4444;
+                color: #FFFFFF;
+            }
+            QPushButton#btn-danger:hover {
+                background-color: #DC2626;
+            }
+            QPushButton#btn-secondary {
+                background-color: #F1F5F9;
+                color: #334155;
+                border: 1px solid #CBD5E1;
+            }
+            QPushButton#btn-secondary:hover {
+                background-color: #E2E8F0;
             }
             QProgressBar {
-                border: 1px solid #2C2C35;
-                border-radius: 5px;
+                border: 1px solid #E2E8F0;
+                background-color: #F1F5F9;
+                border-radius: 6px;
                 text-align: center;
-                height: 18px;
-                color: #FFFFFF;
-                font-weight: bold;
+                height: 20px;
+                color: #334155;
+                font-weight: 600;
+                font-size: 11px;
             }
             QProgressBar::chunk {
-                background-color: #5F5FC4;
-                border-radius: 4px;
+                background-color: #3B82F6;
+                border-radius: 5px;
             }
             QTextEdit {
-                background-color: #121214;
-                border: 1px solid #2C2C35;
+                background-color: #FAFAFA;
+                border: 1px solid #E2E8F0;
                 border-radius: 8px;
-                color: #00FFCC;
-                font-family: 'Consolas', 'Courier New', monospace;
+                color: #334155;
+                font-family: 'Segoe UI', Arial, sans-serif;
                 font-size: 12px;
+                padding: 8px;
             }
             QListWidget {
-                background-color: #121214;
-                border: 1px solid #2C2C35;
+                background-color: #FAFAFA;
+                border: 1px solid #E2E8F0;
                 border-radius: 8px;
-                padding: 5px;
+                padding: 4px;
             }
             QListWidget::item {
-                border-bottom: 1px solid #2C2C35;
+                border-bottom: 1px solid #F1F5F9;
                 padding: 8px;
-                border-radius: 4px;
+                border-radius: 6px;
+                color: #334155;
+            }
+            QListWidget::item:hover {
+                background-color: #F1F5F9;
             }
             QListWidget::item:selected {
-                background-color: #5F5FC4;
-                color: white;
+                background-color: #EFF6FF;
+                color: #1D4ED8;
+                font-weight: 600;
             }
         """)
 
@@ -148,13 +174,13 @@ class DashboardWindow(QMainWindow):
         
         # Header bar
         header_layout = QHBoxLayout()
-        title_label = QLabel("JarvisX - Operations Command Center")
+        title_label = QLabel("Jarvis AI Assistant")
         title_label.setObjectName("title")
         header_layout.addWidget(title_label)
         
         # User name greeting label
-        self.greeting_label = QLabel("Loading memory...")
-        self.greeting_label.setStyleSheet("font-size: 14px; font-style: italic; color: #8F8FA0;")
+        self.greeting_label = QLabel("Welcome, User")
+        self.greeting_label.setStyleSheet("font-size: 13px; font-weight: 600; color: #64748B; background-color: #F1F5F9; padding: 6px 14px; border-radius: 20px;")
         header_layout.addWidget(self.greeting_label, alignment=Qt.AlignRight | Qt.AlignVCenter)
         
         main_layout.addLayout(header_layout)
@@ -172,16 +198,16 @@ class DashboardWindow(QMainWindow):
         telemetry_card.setObjectName("card")
         telemetry_layout = QVBoxLayout(telemetry_card)
         
-        telemetry_title = QLabel("System Resource Telemetry")
+        telemetry_title = QLabel("System Performance")
         telemetry_title.setObjectName("header")
         telemetry_layout.addWidget(telemetry_title)
         
-        telemetry_layout.addWidget(QLabel("CPU Utilization:"))
+        telemetry_layout.addWidget(QLabel("CPU Usage:"))
         self.cpu_bar = QProgressBar()
         self.cpu_bar.setValue(0)
         telemetry_layout.addWidget(self.cpu_bar)
         
-        telemetry_layout.addWidget(QLabel("RAM Memory Utilization:"))
+        telemetry_layout.addWidget(QLabel("RAM Usage:"))
         self.ram_bar = QProgressBar()
         self.ram_bar.setValue(0)
         telemetry_layout.addWidget(self.ram_bar)
@@ -191,8 +217,8 @@ class DashboardWindow(QMainWindow):
         self.battery_bar.setValue(0)
         telemetry_layout.addWidget(self.battery_bar)
         
-        self.battery_label = QLabel("Battery: Unknown")
-        self.battery_label.setStyleSheet("font-size: 11px; color: #8F8FA0;")
+        self.battery_label = QLabel("Battery: Checking...")
+        self.battery_label.setStyleSheet("font-size: 11px; color: #64748B; margin-top: 2px;")
         telemetry_layout.addWidget(self.battery_label)
         
         left_layout.addWidget(telemetry_card)
@@ -202,7 +228,7 @@ class DashboardWindow(QMainWindow):
         self.control_card.setObjectName("card")
         control_layout = QVBoxLayout(self.control_card)
         
-        control_title = QLabel("Subsystem Control")
+        control_title = QLabel("Controls & Security")
         control_title.setObjectName("header")
         control_layout.addWidget(control_title)
         
@@ -211,18 +237,18 @@ class DashboardWindow(QMainWindow):
         self.gesture_toggle.clicked.connect(self.toggle_gesture_mode)
         control_layout.addWidget(self.gesture_toggle)
         
-        self.voice_toggle = QPushButton("Voice Recognition: ENABLED")
+        self.voice_toggle = QPushButton("Voice Assistant: ENABLED")
         self.voice_toggle.setObjectName("toggle-btn-active")
         self.voice_toggle.clicked.connect(self.toggle_voice_mode)
         control_layout.addWidget(self.voice_toggle)
         
         # Security additions
-        self.register_face_btn = QPushButton("Security: REGISTER FACE")
+        self.register_face_btn = QPushButton("Register Face ID")
         self.register_face_btn.clicked.connect(self.register_face_action)
         control_layout.addWidget(self.register_face_btn)
         
-        self.lock_app_btn = QPushButton("Security: LOCK SYSTEM")
-        self.lock_app_btn.setStyleSheet("background-color: #E67E22;")
+        self.lock_app_btn = QPushButton("Lock Assistant")
+        self.lock_app_btn.setObjectName("btn-danger")
         self.lock_app_btn.clicked.connect(self.lock_app_action)
         control_layout.addWidget(self.lock_app_btn)
         
@@ -234,14 +260,14 @@ class DashboardWindow(QMainWindow):
         camera_card.setObjectName("card")
         camera_layout = QVBoxLayout(camera_card)
         
-        camera_title = QLabel("Real-Time Processing Stream")
+        camera_title = QLabel("Live Camera Feed")
         camera_title.setObjectName("header")
         camera_layout.addWidget(camera_title)
         
-        self.camera_label = QLabel("Camera Feed Loading...")
+        self.camera_label = QLabel("Initializing Camera...")
         self.camera_label.setAlignment(Qt.AlignCenter)
         self.camera_label.setFixedSize(500, 375)
-        self.camera_label.setStyleSheet("background-color: #121214; border-radius: 8px; border: 1px dashed #2C2C35;")
+        self.camera_label.setStyleSheet("background-color: #F8FAFC; border-radius: 10px; border: 1px solid #E2E8F0; color: #64748B; font-weight: 500;")
         camera_layout.addWidget(self.camera_label)
         
         self.middle_layout.addWidget(camera_card, stretch=2)
@@ -251,7 +277,7 @@ class DashboardWindow(QMainWindow):
         self.notes_card.setObjectName("card")
         notes_layout = QVBoxLayout(self.notes_card)
         
-        notes_title = QLabel("Memory Notes")
+        notes_title = QLabel("Saved Notes")
         notes_title.setObjectName("header")
         notes_layout.addWidget(notes_title)
         
@@ -260,11 +286,12 @@ class DashboardWindow(QMainWindow):
         
         notes_btn_layout = QHBoxLayout()
         self.refresh_btn = QPushButton("Refresh")
+        self.refresh_btn.setObjectName("btn-secondary")
         self.refresh_btn.clicked.connect(self.refresh_notes)
         notes_btn_layout.addWidget(self.refresh_btn)
         
         self.delete_btn = QPushButton("Delete")
-        self.delete_btn.setStyleSheet("background-color: #C0392B;")
+        self.delete_btn.setObjectName("btn-danger")
         self.delete_btn.clicked.connect(self.delete_selected_note)
         notes_btn_layout.addWidget(self.delete_btn)
         
@@ -280,18 +307,18 @@ class DashboardWindow(QMainWindow):
         log_layout = QVBoxLayout(log_card)
         
         log_title = QHBoxLayout()
-        log_hdr = QLabel("Activity Terminal Logs")
+        log_hdr = QLabel("Activity Log")
         log_hdr.setObjectName("header")
         log_title.addWidget(log_hdr)
         
-        self.voice_status_label = QLabel("Status: Calibrating mic...")
-        self.voice_status_label.setStyleSheet("color: #00FFCC; font-weight: bold;")
+        self.voice_status_label = QLabel("Status: Ready")
+        self.voice_status_label.setStyleSheet("color: #059669; font-weight: 600; background-color: #ECFDF5; padding: 4px 10px; border-radius: 12px; font-size: 12px;")
         log_title.addWidget(self.voice_status_label, alignment=Qt.AlignRight)
         log_layout.addLayout(log_title)
         
         self.log_terminal = QTextEdit()
         self.log_terminal.setReadOnly(True)
-        self.log_terminal.append("System Command Logger online.\n")
+        self.log_terminal.append("Jarvis Assistant initialized and ready.\n")
         log_layout.addWidget(self.log_terminal)
         
         main_layout.addWidget(log_card, stretch=2)
@@ -461,8 +488,8 @@ class DashboardWindow(QMainWindow):
         # Disable all UI widgets
         self.notes_card.setEnabled(False)
         self.control_card.setEnabled(False)
-        self.voice_status_label.setText("Status: LOCKED")
-        self.voice_status_label.setStyleSheet("color: #E74C3C; font-weight: bold;")
+        self.voice_status_label.setText("Status: Locked")
+        self.voice_status_label.setStyleSheet("color: #DC2626; font-weight: 600; background-color: #FEF2F2; padding: 4px 10px; border-radius: 12px; font-size: 12px;")
         
         # Active camera lock detection
         self.camera_worker.activate_lock()
@@ -475,7 +502,7 @@ class DashboardWindow(QMainWindow):
         self.notes_card.setEnabled(True)
         self.control_card.setEnabled(True)
         self.voice_status_label.setText("Status: Online (Listening)")
-        self.voice_status_label.setStyleSheet("color: #00FFCC; font-weight: bold;")
+        self.voice_status_label.setStyleSheet("color: #059669; font-weight: 600; background-color: #ECFDF5; padding: 4px 10px; border-radius: 12px; font-size: 12px;")
         
         self.log_terminal.append(f"\n[Security] Face matched: {name.capitalize()}. Access Granted.")
         self.tts.speak(f"Welcome back {name}. Command Center unlocked.")
