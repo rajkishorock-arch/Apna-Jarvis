@@ -283,9 +283,17 @@ class DashboardWindow(QMainWindow):
         camera_card.setObjectName("card")
         camera_layout = QVBoxLayout(camera_card)
         
+        camera_title_layout = QHBoxLayout()
         camera_title = QLabel("Live Camera Feed")
         camera_title.setObjectName("header")
-        camera_layout.addWidget(camera_title)
+        camera_title_layout.addWidget(camera_title)
+        
+        self.flip_cam_btn = QPushButton("🔄 Rotate/Flip Camera")
+        self.flip_cam_btn.setObjectName("btn-shortcut")
+        self.flip_cam_btn.clicked.connect(self.rotate_camera_action)
+        camera_title_layout.addWidget(self.flip_cam_btn, alignment=Qt.AlignRight)
+        
+        camera_layout.addLayout(camera_title_layout)
         
         self.camera_label = QLabel("Camera is Off (Click 'Camera Gesture: DISABLED' to enable)")
         self.camera_label.setAlignment(Qt.AlignCenter)
@@ -425,6 +433,10 @@ class DashboardWindow(QMainWindow):
                 Qt.KeepAspectRatio,
                 Qt.SmoothTransformation
             ))
+
+    def rotate_camera_action(self):
+        new_mode = self.camera_worker.toggle_flip()
+        self.log_terminal.append("<b>[Camera System]:</b> Camera frame orientation rotated.")
 
     def update_voice_status(self, status):
         self.voice_status_label.setText(f"Status: {status}")

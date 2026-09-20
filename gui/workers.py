@@ -47,6 +47,7 @@ class CameraWorker(QThread):
         
         self.auth_consecutive_frames = 0
         self.auth_required_frames = 5
+        self.flip_code = 1  # 1 = horizontal mirror, 0 = vertical flip, -1 = both
         
     def run(self):
         while self.active:
@@ -78,6 +79,9 @@ class CameraWorker(QThread):
                 if not success or img is None or img.size == 0:
                     time.sleep(0.03)
                     continue
+
+                # Flip camera frame to orient right side up
+                img = cv2.flip(img, self.flip_code)
                 
                 # Mode Routing
                 if self.mode == "CAPTURE":
@@ -175,6 +179,15 @@ class CameraWorker(QThread):
     def activate_lock(self):
         self.mode = "LOCK"
         self.auth_consecutive_frames = 0
+
+    def toggle_flip(self):
+        if self.flip_code == 1:
+            self.flip_code = 0
+        elif self.flip_code == 0:
+            self.flip_code = -1
+        else:
+            self.flip_code = 1
+        return self.flip_code
 
     def stop(self):
         self.active = False
