@@ -217,7 +217,7 @@ class VoiceWorker(QThread):
         self.automation = automation
 
     def run(self):
-        self.status_changed.emit("Online (Listening for voice commands)")
+        self.status_changed.emit("Online (Listening for 'Jarvis')")
         
         while self.active:
             if not self.voice_enabled:
@@ -232,13 +232,28 @@ class VoiceWorker(QThread):
 
             query = self.listener.listen(timeout=3, phrase_time_limit=5)
             if query:
-                # Remove wake word if prefixed
+                # Play audio beep feedback so user knows voice was heard
+                try:
+                    import winsound
+                    winsound.Beep(1200, 120)
+                except Exception:
+                    pass
+
+                # Check if query is just wake word or contains command
+                is_wake = any(w in query for w in ["jarvis", "hey jarvis", "hello jarvis"])
                 clean_cmd = re.sub(r"^(jarvis|hey jarvis|hello jarvis)\s*", "", query, flags=re.IGNORECASE).strip()
+
+                if is_wake and not clean_cmd:
+                    # Wake word spoken alone -> give audio + visual confirmation
+                    self.status_changed.emit("⚡ Wake Word Detected! Listening...")
+                    self.tts.speak("Yes sir, I am listening.", block=False)
+                    continue
+
                 if not clean_cmd:
                     clean_cmd = query
-                    
+
                 print(f"[GUI Voice Worker] Processing voice query: {clean_cmd}")
-                self.status_changed.emit("Processing voice command...")
+                self.status_changed.emit(f"🗣️ Heard: '{clean_cmd}' - Executing...")
                 
                 if "disable voice" in clean_cmd or "stop voice" in clean_cmd:
                     self.tts.speak("Disabling voice assistant.", block=False)

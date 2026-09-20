@@ -11,14 +11,16 @@ class VoiceListener:
     def __init__(self):
         self.recognizer = sr.Recognizer()
         self.recognizer.dynamic_energy_threshold = True
-        self.recognizer.energy_threshold = 300
+        self.recognizer.energy_threshold = 200
+        self.recognizer.pause_threshold = 0.8
+        self.recognizer.non_speaking_duration = 0.5
         self.microphone_available = False
         
         try:
             self.microphone = sr.Microphone()
             print("[Voice] Calibrating microphone for ambient noise...")
             with self.microphone as source:
-                self.recognizer.adjust_for_ambient_noise(source, duration=0.8)
+                self.recognizer.adjust_for_ambient_noise(source, duration=0.6)
             self.microphone_available = True
             print("[Voice] Calibration complete.")
         except Exception as e:

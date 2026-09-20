@@ -31,21 +31,28 @@ class AIBrain:
         params = {}
         reply = ""
 
-        # 1. Chrome / Browser
-        if any(k in q for k in ["open chrome", "chrome kholo", "launch chrome", "browser kholo", "open browser"]):
-            intent = "launch_app"
-            params = {"app": "chrome"}
-            reply = "Opening Google Chrome for you."
-        elif q == "chrome" or q == "browser":
-            intent = "launch_app"
-            params = {"app": "chrome"}
-            reply = "Launching Chrome."
-
-        # 2. YouTube
-        elif any(k in q for k in ["open youtube", "youtube kholo", "youtube chalo", "play youtube", "youtube"]):
+        # 1. YouTube Play / Video Search
+        if "play" in q and "youtube" in q:
+            song = re.sub(r"(play|on youtube|youtube|bajao)", "", q, flags=re.IGNORECASE).strip()
+            if song:
+                intent = "open_website"
+                encoded_song = urllib.parse.quote(song)
+                params = {"url": f"https://www.youtube.com/results?search_query={encoded_song}"}
+                reply = f"Searching and playing '{song}' on YouTube."
+            else:
+                intent = "open_website"
+                params = {"url": "https://www.youtube.com"}
+                reply = "Opening YouTube."
+        elif any(k in q for k in ["open youtube", "youtube kholo", "youtube chalo", "youtube"]):
             intent = "open_website"
             params = {"url": "https://www.youtube.com"}
             reply = "Opening YouTube."
+
+        # 2. Chrome / Browser
+        elif any(k in q for k in ["open chrome", "chrome kholo", "launch chrome", "browser kholo", "open browser", "chrome"]):
+            intent = "launch_app"
+            params = {"app": "chrome"}
+            reply = "Opening Google Chrome."
 
         # 3. VS Code
         elif any(k in q for k in ["open vs code", "open vscode", "code kholo", "open code", "vs code", "vscode"]):
@@ -53,17 +60,29 @@ class AIBrain:
             params = {"app": "vscode"}
             reply = "Launching Visual Studio Code."
 
-        # 4. Notepad
+        # 4. Notepad & Calculator
         elif any(k in q for k in ["open notepad", "notepad kholo", "notepad"]):
             intent = "launch_app"
             params = {"app": "notepad"}
             reply = "Opening Notepad."
-
-        # 5. Calculator
         elif any(k in q for k in ["open calculator", "calculator kholo", "calculator", "calc"]):
             intent = "launch_app"
             params = {"app": "calculator"}
             reply = "Opening Calculator."
+
+        # 5. Volume Controls
+        elif any(k in q for k in ["volume up", "aawaz badhao", "increase volume"]):
+            intent = "volume_control"
+            params = {"action": "up"}
+            reply = "Increasing volume."
+        elif any(k in q for k in ["volume down", "aawaz kam karo", "decrease volume"]):
+            intent = "volume_control"
+            params = {"action": "down"}
+            reply = "Decreasing volume."
+        elif any(k in q for k in ["mute", "unmute", "aawaz band karo"]):
+            intent = "volume_control"
+            params = {"action": "mute"}
+            reply = "Muting system audio."
 
         # 6. Close App
         elif "close" in q or "band karo" in q:
@@ -92,7 +111,7 @@ class AIBrain:
         elif any(k in q for k in ["cpu", "ram", "system stats", "system usage", "battery", "performance"]):
             intent = "system_stats"
             params = {}
-            reply = "Displaying your CPU, RAM, and Battery performance metrics on the dashboard."
+            reply = "Displaying system performance metrics on dashboard."
 
         # 9. Time & Date
         elif any(k in q for k in ["time", "samay", "wakt"]):
@@ -104,7 +123,27 @@ class AIBrain:
             intent = "general_chat"
             reply = f"Today is {today}."
 
-        # 10. Memory / Notes
+        # 10. Weather
+        elif any(k in q for k in ["weather", "mausam"]):
+            intent = "web_search"
+            params = {"query": "current weather forecast"}
+            reply = "Checking current weather forecast for your location."
+
+        # 11. Math Calculation (Voice Calculator)
+        elif any(k in q for k in ["plus", "minus", "times", "multiplied by", "divided by", "calculate"]):
+            try:
+                expr = q.replace("plus", "+").replace("minus", "-").replace("times", "*").replace("multiplied by", "*").replace("divided by", "/")
+                expr = re.sub(r"[^0-9\+\-\*\/\.\(\)\s]", "", expr).strip()
+                if expr:
+                    res = eval(expr)
+                    intent = "general_chat"
+                    reply = f"The answer is {res}."
+                else:
+                    reply = "I couldn't parse the math calculation."
+            except Exception:
+                reply = "Sorry, I couldn't calculate that math expression."
+
+        # 12. Memory & Preferences
         elif "my name is" in q or "call me" in q:
             match = re.search(r"(my name is|call me)\s+([a-zA-Z]+)", q)
             name = match.group(2).capitalize() if match else "User"
@@ -124,23 +163,23 @@ class AIBrain:
                 reply = "What note would you like me to save?"
             intent = "general_chat"
 
-        # 11. Web Search
+        # 13. Web Search
         elif q.startswith("search ") or q.startswith("google ") or "search" in q:
             search_query = re.sub(r"^(search|google|search for)\s+", "", q, flags=re.IGNORECASE).strip()
             intent = "web_search"
             params = {"query": search_query}
             reply = f"Searching Google for '{search_query}'."
 
-        # 12. Greetings & General Chat
+        # 14. Greetings & General Chat
         elif any(k in q for k in ["hi", "hello", "hey", "namaste", "kaise ho", "how are you"]):
             user_name = self.db.get_preference("user_name") or "there"
             intent = "general_chat"
-            reply = f"Hello {user_name}! How can I assist you with your computer today?"
+            reply = f"Hello {user_name}! I am active and ready. How can I help you with your computer?"
         elif any(k in q for k in ["who are you", "tum kaun ho", "what is your name"]):
             intent = "general_chat"
-            reply = "I am Jarvis, your AI Desktop Assistant. I can open apps, take screenshots, search the web, manage notes, and control your PC!"
+            reply = "I am Jarvis, your AI Desktop Assistant. I can open apps, search YouTube/Google, take screenshots, calculate math, and manage your PC!"
 
-        # 13. Fallback for general questions
+        # 15. Fallback for general questions
         else:
             intent = "web_search"
             params = {"query": q_raw}
@@ -167,6 +206,5 @@ class AIBrain:
 
 if __name__ == "__main__":
     brain = AIBrain()
-    print(brain.process_command("open chrome"))
-    print(brain.process_command("time kya hai"))
-    print(brain.process_command("search python tutorials"))
+    print(brain.process_command("play Arijit Singh songs on youtube"))
+    print(brain.process_command("what is 25 times 4"))
