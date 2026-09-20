@@ -122,24 +122,27 @@ class CameraWorker(QThread):
                         )
                         
                 elif self.mode == "LOCK":
-                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                    name, confidence = self.face_recognizer.recognize_face(gray)
-                    
-                    if name is not None:
-                        cv2.putText(
-                            img, f"Verifying: {name} ({int(confidence)}%)", (20, 40), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
-                        )
-                        self.auth_consecutive_frames += 1
-                        if self.auth_consecutive_frames >= self.auth_required_frames:
-                            self.mode = "GESTURE"
-                            self.access_granted.emit(name)
-                    else:
-                        self.auth_consecutive_frames = 0
-                        cv2.putText(
-                            img, "Locked - Scan Face to Unlock", (20, 40), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2
-                        )
+                    try:
+                        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                        name, confidence = self.face_recognizer.recognize_face(gray)
+                        
+                        if name is not None and name != "Unknown" and confidence < 85:
+                            cv2.putText(
+                                img, f"Verifying: {name} ({int(confidence)})", (20, 40), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+                            )
+                            self.auth_consecutive_frames += 1
+                            if self.auth_consecutive_frames >= self.auth_required_frames:
+                                self.mode = "GESTURE"
+                                self.access_granted.emit(name)
+                        else:
+                            self.auth_consecutive_frames = 0
+                            cv2.putText(
+                                img, "Locked - Scan Face to Unlock", (20, 40), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2
+                            )
+                    except Exception as fe:
+                        print(f"[Face Verification Notice]: {fe}")
                         
                 elif self.mode == "GESTURE":
                     if self.gesture_enabled:

@@ -161,6 +161,30 @@ class FaceRecognizer:
             print(f"[Face Vision Error] Prediction failed: {e}")
             return None, 0.0, None
 
+    def recognize_face(self, gray_or_frame):
+        """Wrapper method for recognize_face."""
+        if len(gray_or_frame.shape) == 2:
+            # Grayscale image passed
+            if not self.model_loaded:
+                return None, 0.0
+            rect = self.detect_face(gray_or_frame)
+            if rect is None:
+                return None, 0.0
+            x, y, w, h = rect
+            face_crop = gray_or_frame[y:y+h, x:x+w]
+            face_resized = cv2.resize(face_crop, (200, 200))
+            try:
+                label_id, confidence = self.recognizer.predict(face_resized)
+                mapping_str = self.db.get_preference("face_mappings", "{}")
+                mappings = json.loads(mapping_str)
+                name = mappings.get(str(label_id), "Unknown")
+                return name, confidence
+            except Exception:
+                return None, 0.0
+        else:
+            name, conf, rect = self.predict(gray_or_frame)
+            return name, conf
+
 if __name__ == "__main__":
     recognizer = FaceRecognizer()
     print("Haar Cascade Loaded:", recognizer.face_cascade is not None)
