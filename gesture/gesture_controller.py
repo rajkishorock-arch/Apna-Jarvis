@@ -10,26 +10,26 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import config
 
-# PyAutoGUI Safety Settings
-pyautogui.FAILSAFE = True
-pyautogui.PAUSE = 0.01  # Add slight delay to prevent OS event queue backup
+# PyAutoGUI Safety Settings (Disable corner fail-safe crash)
+pyautogui.FAILSAFE = False
+pyautogui.PAUSE = 0.001
 
 class GestureController:
     def __init__(self):
         self.w_screen, self.h_screen = pyautogui.size()
         
         # Frame reduction for bounding box
-        self.frame_reduction_x = 100
-        self.frame_reduction_y = 80
+        self.frame_reduction_x = 60
+        self.frame_reduction_y = 50
         
         # Cursor smoothing variables
         self.ploc_x, self.ploc_y = 0, 0
         self.cloc_x, self.cloc_y = 0, 0
-        self.smoothing = config.MOUSE_SENSITIVITY
+        self.smoothing = max(1.5, config.MOUSE_SENSITIVITY)
         
         # Cool-down tracker to prevent rapid multi-clicks
         self.last_action_time = 0
-        self.click_cooldown = 0.3  # seconds
+        self.click_cooldown = 0.35  # seconds
         
         # Scroll tracker
         self.last_scroll_y = None
@@ -46,93 +46,73 @@ class GestureController:
         
         current_time = time.time()
         
-        # 1. MOUSE MOVE MODE: Only Index Finger is Up
-        if fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
-            # Map coordinates inside frame reduction bounding box
-            # Frame reduction bounds
-            x_min = self.frame_reduction_x
-            x_max = config.FRAME_WIDTH - self.frame_reduction_x
-            y_min = self.frame_reduction_y
-            y_max = config.FRAME_HEIGHT - self.frame_reduction_y
-            
-            # Draw bounding box
-            cv2.rectangle(img, (x_min, y_min), (x_max, y_max), (255, 0, 0), 2)
-            
-            # Interpolate coordinates
+        # Bounding box bounds
+        x_min = self.frame_reduction_x
+        x_max = config.FRAME_WIDTH - self.frame_reduction_x
+        y_min = self.frame_reduction_y
+        y_max = config.FRAME_HEIGHT - self.frame_reduction_y
+        
+        # Draw bounding box
+        cv2.rectangle(img, (x_min, y_min), (x_max, y_max), (255, 180, 0), 2)
+        
+        # 1. MOUSE MOVE MODE: Index Finger Up (or Index + Middle Up)
+        if fingers[1] == 1:
+            # Interpolate coordinates to screen size
             x_scaled = np.interp(x_index, (x_min, x_max), (0, self.w_screen))
             y_scaled = np.interp(y_index, (y_min, y_max), (0, self.h_screen))
             
-            # Smooth coordinates (moving average)
+            # Clip bounds
+            x_scaled = np.clip(x_scaled, 0, self.w_screen - 1)
+            y_scaled = np.clip(y_scaled, 0, self.h_screen - 1)
+            
+            # Smooth coordinates
             self.cloc_x = self.ploc_x + (x_scaled - self.ploc_x) / self.smoothing
             self.cloc_y = self.ploc_y + (y_scaled - self.ploc_y) / self.smoothing
             
-            # Move cursor (invert X to act like a mirror)
-            # Webcams are mirrored, so we subtract scaled X from screen width to match physical hand movement
-            target_x = self.w_screen - self.cloc_x
-            
+            # Direct movement (image is already flipped in worker thread)
             try:
-                pyautogui.moveTo(target_x, self.cloc_y)
-            except pyautogui.FailSafeException:
-                pass  # Ignore if it hits screen corners
+                pyautogui.moveTo(int(self.cloc_x), int(self.cloc_y))
+            except Exception:
+                pass
                 
-            cv2.circle(img, (x_index, y_index), 12, (0, 255, 0), cv2.FILLED)
+            cv2.circle(img, (x_index, y_index), 10, (0, 255, 0), cv2.FILLED)
             self.ploc_x, self.ploc_y = self.cloc_x, self.cloc_y
 
-        # 2. LEFT CLICK: Index and Middle fingers up and close to each other
-        elif fingers[1] == 1 and fingers[2] == 1 and fingers[3] == 0 and fingers[4] == 0:
-            # Find distance between index tip and middle tip
+        # 2. LEFT CLICK: Index and Middle fingers pinch (distance < threshold)
+        if fingers[1] == 1 and fingers[2] == 1 and fingers[3] == 0:
             dist, info, img = tracker.find_distance(8, 12, lm_list, img)
-            
-            if dist < config.CLICK_DISTANCE_THRESHOLD:
+            if dist < 35:
                 if current_time - self.last_action_time > self.click_cooldown:
                     cv2.circle(img, (info[4], info[5]), 15, (0, 255, 255), cv2.FILLED)
                     try:
                         pyautogui.click()
-                    except pyautogui.FailSafeException:
+                    except Exception:
                         pass
                     self.last_action_time = current_time
                     print("[Gesture] Left Click executed")
 
         # 3. RIGHT CLICK: Thumb and Index finger pinch
-        elif fingers[0] == 1 and fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
+        elif fingers[0] == 1 and fingers[1] == 1 and fingers[2] == 0:
             dist, info, img = tracker.find_distance(4, 8, lm_list, img)
-            if dist < config.CLICK_DISTANCE_THRESHOLD:
+            if dist < 35:
                 if current_time - self.last_action_time > self.click_cooldown:
                     cv2.circle(img, (info[4], info[5]), 15, (255, 255, 0), cv2.FILLED)
                     try:
                         pyautogui.rightClick()
-                    except pyautogui.FailSafeException:
+                    except Exception:
                         pass
                     self.last_action_time = current_time
                     print("[Gesture] Right Click executed")
 
-        # 4. VOLUME UP / DOWN: Thumb Up (Volume Up) / Thumb Down (Volume Down)
-        # Check for thumbs up / thumbs down or specific pinch distance for slider
-        # Let's map Pinky & Index distance (horizontal/vertical) or volume commands
-        # A simpler option is: Index, Middle, Ring up + Thumb relative position
-        # Let's map middle/ring/pinky up, thumb out -> Volume control using Index/Thumb distance
-        elif fingers[1] == 1 and fingers[2] == 1 and fingers[3] == 1 and fingers[4] == 1:
-            # All fingers up (Palm/Open Hand) - Check if Thumb is closed
-            # Let's use distance between Thumb (4) and Index (5) MCP joint
-            # If thumb is close to index, adjust volume by moving hand vertically
-            dist, info, img = tracker.find_distance(4, 5, lm_list, img)
-            
-            # Simple volume control: if thumb and index are pinched but middle, ring, pinky are up
-            # Let's do: Thumb (4) and Middle (12) distance pinch for scroll
-            pass
-
-        # 5. SCROLLING: Index, Middle and Ring up
-        elif fingers[1] == 1 and fingers[2] == 1 and fingers[3] == 1 and fingers[4] == 0:
-            # Use Index tip vertical movement for scrolling
+        # 4. SCROLLING: Index, Middle and Ring up
+        elif fingers[1] == 1 and fingers[2] == 1 and fingers[3] == 1:
             if self.last_scroll_y is not None:
                 diff = y_index - self.last_scroll_y
-                if abs(diff) > 10:
-                    # Positive diff = hand moved down = scroll down
-                    # Negative diff = hand moved up = scroll up
-                    scroll_amount = -int(diff * 1.5)
+                if abs(diff) > 8:
+                    scroll_amount = -int(diff * 2.0)
                     try:
                         pyautogui.scroll(scroll_amount)
-                    except pyautogui.FailSafeException:
+                    except Exception:
                         pass
             self.last_scroll_y = y_index
         else:
