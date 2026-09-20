@@ -39,6 +39,7 @@ class CameraWorker(QThread):
             max_hands=config.MAX_NUM_HANDS
         )
         self.controller = GestureController()
+        self.cap = None
         
         # Face Recognizer (lazy import to prevent dependency issues)
         from vision.face_recognizer import FaceRecognizer
@@ -48,15 +49,21 @@ class CameraWorker(QThread):
         self.auth_required_frames = 5
         
     def run(self):
-        cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        if not cap.isOpened():
-            cap = cv2.VideoCapture(0)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+        if not self.cap.isOpened():
+            self.cap = cv2.VideoCapture(0)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        
+        # Discard initial hardware sensor warmup frames
+        for _ in range(5):
+            if self.cap.isOpened():
+                self.cap.read()
+                time.sleep(0.05)
         
         while self.active:
             try:
-                success, img = cap.read()
+                success, img = self.cap.read()
                 if not success or img is None or img.size == 0:
                     time.sleep(0.03)
                     continue
@@ -146,7 +153,8 @@ class CameraWorker(QThread):
                 print(f"[Camera Thread Loop Error]: {e}")
                 time.sleep(0.1)
             
-        cap.release()
+        if self.cap:
+            self.cap.release()
 
     def start_face_capture(self, user_name):
         self.capture_user_name = user_name
@@ -159,7 +167,12 @@ class CameraWorker(QThread):
 
     def stop(self):
         self.active = False
-        self.wait()
+        if hasattr(self, 'cap') and self.cap:
+            try:
+                self.cap.release()
+            except Exception:
+                pass
+        self.quit()
 
 
 class VoiceWorker(QThread):

@@ -659,13 +659,17 @@ class DashboardWindow(QMainWindow):
         self.tts.speak(f"Welcome back {name}. Command Center unlocked.")
 
     def closeEvent(self, event):
-        # Stop telemetry timer to prevent database operations during shutdown
-        self.telemetry_timer.stop()
-        # Properly terminate threads on exit to prevent locking processes
-        self.camera_worker.stop()
-        self.voice_worker.stop()
-        self.brain.db.close()
+        try:
+            self.telemetry_timer.stop()
+            self.camera_worker.active = False
+            self.voice_worker.active = False
+            if hasattr(self.camera_worker, 'cap') and self.camera_worker.cap:
+                self.camera_worker.cap.release()
+            self.brain.db.close()
+        except Exception:
+            pass
         event.accept()
+        os._exit(0)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
