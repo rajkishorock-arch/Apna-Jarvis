@@ -255,8 +255,8 @@ class DashboardWindow(QMainWindow):
         control_title.setObjectName("header")
         control_layout.addWidget(control_title)
         
-        self.gesture_toggle = QPushButton("Camera Gesture: ENABLED")
-        self.gesture_toggle.setObjectName("toggle-btn-active")
+        self.gesture_toggle = QPushButton("Camera Gesture: DISABLED")
+        self.gesture_toggle.setObjectName("toggle-btn-inactive")
         self.gesture_toggle.clicked.connect(self.toggle_gesture_mode)
         control_layout.addWidget(self.gesture_toggle)
         
@@ -287,7 +287,7 @@ class DashboardWindow(QMainWindow):
         camera_title.setObjectName("header")
         camera_layout.addWidget(camera_title)
         
-        self.camera_label = QLabel("Initializing Camera...")
+        self.camera_label = QLabel("Camera is Off (Click 'Camera Gesture: DISABLED' to enable)")
         self.camera_label.setAlignment(Qt.AlignCenter)
         self.camera_label.setFixedSize(500, 375)
         self.camera_label.setStyleSheet("background-color: #F8FAFC; border-radius: 10px; border: 1px solid #E2E8F0; color: #64748B; font-weight: 500;")

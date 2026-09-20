@@ -26,7 +26,7 @@ class CameraWorker(QThread):
     def __init__(self):
         super().__init__()
         self.active = True
-        self.gesture_enabled = True
+        self.gesture_enabled = False  # Disabled by default on startup!
         self.mode = "GESTURE"  # "GESTURE", "CAPTURE", "LOCK"
         self.capture_user_name = "User"
         self.capture_count = 0
@@ -49,19 +49,30 @@ class CameraWorker(QThread):
         self.auth_required_frames = 5
         
     def run(self):
-        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        if not self.cap.isOpened():
-            self.cap = cv2.VideoCapture(0)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        
-        # Discard initial hardware sensor warmup frames
-        for _ in range(5):
-            if self.cap.isOpened():
-                self.cap.read()
-                time.sleep(0.05)
-        
         while self.active:
+            # If gesture mode is disabled and not capturing/locking, keep camera closed!
+            if not self.gesture_enabled and self.mode == "GESTURE":
+                if self.cap is not None:
+                    try:
+                        self.cap.release()
+                    except Exception:
+                        pass
+                    self.cap = None
+                time.sleep(0.2)
+                continue
+
+            # Open camera hardware ONLY when enabled or capturing/locking
+            if self.cap is None or not self.cap.isOpened():
+                self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+                if not self.cap.isOpened():
+                    self.cap = cv2.VideoCapture(0)
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                for _ in range(5):
+                    if self.cap.isOpened():
+                        self.cap.read()
+                        time.sleep(0.04)
+
             try:
                 success, img = self.cap.read()
                 if not success or img is None or img.size == 0:
