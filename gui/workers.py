@@ -204,7 +204,7 @@ class VoiceWorker(QThread):
         self.automation = automation
 
     def run(self):
-        self.status_changed.emit("Online (Listening for 'Jarvis')")
+        self.status_changed.emit("Online (Listening for voice commands)")
         
         while self.active:
             if not self.voice_enabled:
@@ -212,63 +212,50 @@ class VoiceWorker(QThread):
                 time.sleep(0.5)
                 continue
                 
-            # Passive listening for wake word
-            query = self.listener.listen(timeout=3, phrase_time_limit=4)
-            if query and config.WAKE_WORD in query:
-                print(f"[GUI Voice Worker] Wake word detected: {query}")
+            if self.locked:
+                self.status_changed.emit("Locked Mode (Mic Blocked)")
+                time.sleep(0.5)
+                continue
+
+            query = self.listener.listen(timeout=3, phrase_time_limit=5)
+            if query:
+                # Remove wake word if prefixed
+                clean_cmd = re.sub(r"^(jarvis|hey jarvis|hello jarvis)\s*", "", query, flags=re.IGNORECASE).strip()
+                if not clean_cmd:
+                    clean_cmd = query
+                    
+                print(f"[GUI Voice Worker] Processing voice query: {clean_cmd}")
+                self.status_changed.emit("Processing voice command...")
                 
-                # Check security lock state first
-                if self.locked:
-                    self.status_changed.emit("Locked Mode (Mic Blocked)")
-                    self.tts.speak("System access is locked. Please look at the camera to authenticate.")
+                if "disable voice" in clean_cmd or "stop voice" in clean_cmd:
+                    self.tts.speak("Disabling voice assistant.", block=False)
+                    self.voice_enabled = False
+                    self.status_changed.emit("Microphone Disabled")
                     continue
+                    
+                res = self.brain.process_command(clean_cmd)
+                intent = res["intent"]
+                params = res["params"]
+                reply = res["reply"]
                 
-                self.status_changed.emit("Listening for command...")
-                self.tts.speak("Yes, how can I help you?")
-                
-                # Active listening for system command
-                command = self.listener.listen(timeout=5, phrase_time_limit=6)
-                if command:
-                    print(f"[GUI Voice Worker] Command: {command}")
-                    self.status_changed.emit("Processing query...")
-                    
-                    if "stop voice" in command or "disable voice" in command:
-                        self.tts.speak("Disabling voice assistant.")
-                        self.voice_enabled = False
-                        continue
-                        
-                    response = self.brain.process_query(command)
-                    reply = response.get("reply", "I am on it.")
-                    self.tts.speak(reply)
-                    
-                    self.command_received.emit(command, reply)
-                    
-                    # Execute automation
-                    intent = response.get("intent")
-                    arg = response.get("argument")
-                    
-                    if intent == "open_app" and arg:
-                        self.automation.open_app(arg)
-                        self.brain.db.log_app_launch(arg)
-                        self.app_opened.emit(arg)
-                    elif intent == "close_app" and arg:
-                        self.automation.close_app(arg)
-                    elif intent == "open_url" and arg:
-                        self.automation.open_url(arg)
-                    elif intent == "search_web" and arg:
-                        self.automation.search_web(arg)
-                    elif intent == "screenshot":
-                        self.automation.take_screenshot()
-                    elif intent == "system_stats":
-                        stats = self.automation.get_system_stats()
-                        stat_reply = f"CPU is at {stats['cpu_percent']} percent, and RAM usage is {stats['ram_percent']} percent."
-                        self.tts.speak(stat_reply)
-                    elif intent == "shutdown":
-                        self.automation.shutdown()
-                    elif intent == "abort_shutdown":
-                        self.automation.abort_shutdown()
-                
-                self.status_changed.emit("Online (Listening for 'Jarvis')")
+                # Execute automation
+                if intent == "launch_app":
+                    self.automation.launch_app(params["app"])
+                elif intent == "close_app":
+                    self.automation.close_app(params["app"])
+                elif intent == "open_website":
+                    self.automation.open_website(params["url"])
+                elif intent == "web_search":
+                    self.automation.search_web(params["query"])
+                elif intent == "take_screenshot":
+                    self.automation.take_screenshot()
+                elif intent == "volume_control":
+                    self.automation.control_volume(params["action"])
+
+                # Speak & emit signal for UI update
+                self.command_received.emit(clean_cmd, reply)
+                self.tts.speak(reply, block=False)
+                self.status_changed.emit("Online (Listening for voice commands)")
             else:
                 time.sleep(0.01)
 
