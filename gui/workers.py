@@ -48,16 +48,14 @@ class CameraWorker(QThread):
         self.auth_required_frames = 5
         
     def run(self):
-        cap = cv2.VideoCapture(config.CAMERA_INDEX, cv2.CAP_DSHOW)
-        if not cap.isOpened():
-            cap = cv2.VideoCapture(0)
-        cap.set(3, config.FRAME_WIDTH)
-        cap.set(4, config.FRAME_HEIGHT)
+        cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         
         while self.active:
             try:
                 success, img = cap.read()
-                if not success:
+                if not success or img is None:
                     time.sleep(0.03)
                     continue
                 
@@ -100,30 +98,18 @@ class CameraWorker(QThread):
                         )
                         
                 elif self.mode == "LOCK":
-                    # Look for registered user faces
-                    name, confidence, rect = self.face_recognizer.predict(img)
-                    if rect is not None:
-                        x, y, w, h = rect
-                        cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
-                        
-                        # LBPH distance (lower is better, < 80 represents strong confidence)
-                        if name and name != "Unknown" and confidence < 80:
-                            self.auth_consecutive_frames += 1
-                            cv2.putText(
-                                img, f"Verifying... {self.auth_consecutive_frames}/{self.auth_required_frames}", 
-                                (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2
-                            )
-                            
-                            if self.auth_consecutive_frames >= self.auth_required_frames:
-                                self.mode = "GESTURE"
-                                self.access_granted.emit(name)
-                                self.auth_consecutive_frames = 0
-                        else:
-                            self.auth_consecutive_frames = 0
-                            cv2.putText(
-                                img, "Access Denied / Unknown Face", (x, y-10), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2
-                            )
+                    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                    name, confidence = self.face_recognizer.recognize_face(gray)
+                    
+                    if name is not None:
+                        cv2.putText(
+                            img, f"Verifying: {name} ({int(confidence)}%)", (20, 40), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2
+                        )
+                        self.auth_consecutive_frames += 1
+                        if self.auth_consecutive_frames >= self.auth_required_frames:
+                            self.mode = "GESTURE"
+                            self.access_granted.emit(name)
                     else:
                         self.auth_consecutive_frames = 0
                         cv2.putText(
@@ -146,11 +132,11 @@ class CameraWorker(QThread):
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2
                         )
                 
-                # Convert frame to QImage for Qt UI update
+                # Convert frame to QImage safely with .copy() to prevent memory buffer corruption
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 h, w, ch = img_rgb.shape
                 bytes_per_line = ch * w
-                q_img = QImage(img_rgb.data, w, h, bytes_per_line, QImage.Format_RGB888)
+                q_img = QImage(img_rgb.data, w, h, bytes_per_line, QImage.Format_RGB888).copy()
                 
                 self.frame_processed.emit(q_img)
                 time.sleep(0.01)

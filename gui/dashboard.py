@@ -417,12 +417,14 @@ class DashboardWindow(QMainWindow):
 
     # --- Slots / Handlers ---
     def update_camera_frame(self, q_img):
-        pixmap = QPixmap.fromImage(q_img)
-        self.camera_label.setPixmap(pixmap.scaled(
-            self.camera_label.width(), 
-            self.camera_label.height(), 
-            Qt.KeepAspectRatio
-        ))
+        if self.camera_worker.gesture_enabled:
+            pixmap = QPixmap.fromImage(q_img)
+            self.camera_label.setPixmap(pixmap.scaled(
+                self.camera_label.width(), 
+                self.camera_label.height(), 
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            ))
 
     def update_voice_status(self, status):
         self.voice_status_label.setText(f"Status: {status}")
